@@ -30,11 +30,6 @@ class IPArse(ServiceBase):
         import subprocess
         import unicodedata
         import zipfile
-        try:
-            from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
-            global PatternMatch
-        except ImportError:
-            pass
 
     def isipa(self, zf):
         # Help from https://herkuang.info/en/2016/01/22/extract-app-info-in-ipa-files-using-python/
