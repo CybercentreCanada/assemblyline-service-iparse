@@ -2,12 +2,12 @@
 
 
 def install(alsi):
-    alsi.sudo_apt_install([
-        'p7zip-full'
-    ])
-
     alsi.pip_install_all([
         'biplist',
+    ])
+    
+    alsi.sudo_apt_install([
+        'p7zip-full'
     ])
     return
 
