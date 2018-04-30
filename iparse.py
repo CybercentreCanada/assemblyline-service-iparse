@@ -58,7 +58,11 @@ class IPArse(ServiceBase):
         ipa_path = request.download()
 
         # Determine if PK container has IPA content to parse
-        ipa_file = zipfile.ZipFile(ipa_path)
+        try:
+            ipa_file = zipfile.ZipFile(ipa_path)
+        except zipfile.BadZipfile:
+            # Return if files cannot be extracted
+            return
         name_list, isipa = self.isipa(ipa_file)
 
         if not isipa:
