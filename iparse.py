@@ -8,9 +8,9 @@ class IPArse(ServiceBase):
     SERVICE_DESCRIPTION = "IPA File Analyzer"
     SERVICE_REVISION = ServiceBase.parse_revision('$Id$')
     SERVICE_VERSION = '1'
-    SERVICE_TIMEOUT = 150
+    SERVICE_TIMEOUT = 60
     SERVICE_ENABLED = True
-    SERVICE_CPU_CORES = 0.5
+    SERVICE_CPU_CORES = 0.1
     SERVICE_RAM_MB = 256
 
     def __init__(self, cfg=None):
