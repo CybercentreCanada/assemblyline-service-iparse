@@ -285,14 +285,7 @@ class IPArse(ServiceBase):
                                     else:
                                         int_files[desc] = []
                                         int_files[desc].append(full_path)
-                                if os.path.getsize(full_path) < 50000001:
-                                    request.add_extracted(full_path, desc)
-                                matched = True
                                 break
-                        # Extract all files under 5MB
-                        if not matched:
-                            if os.path.getsize(full_path) < 50000001:
-                                request.add_extracted(full_path, "Extracted file")
 
         if len(plist_res.subsections) > 0:
             self.result.add_section(plist_res)
