@@ -270,11 +270,6 @@ class IPArse(ServiceBase):
                             if m is not None:
                                 # Already identify main executable file above
                                 if not desc.startswith("Main executable file "):
-                                    if int_files.get(desc, None):
-                                        int_files[desc].append(full_path)
-                                    else:
-                                        int_files[desc] = []
-                                        int_files[desc].append(full_path)
                                     if desc.startswith("Plist"):
                                         pres = ResultSection(SCORE.NULL, "{}:" .format(full_path))
                                         isempty, plist_parsed = self.gen_plist_extract(full_path)
@@ -285,6 +280,11 @@ class IPArse(ServiceBase):
                                             if unk_key_res:
                                                 pres.add_section(unk_key_res)
                                             plist_res.add_section(pres)
+                                    elif int_files.get(desc, None):
+                                        int_files[desc].append(full_path)
+                                    else:
+                                        int_files[desc] = []
+                                        int_files[desc].append(full_path)
                                 if os.path.getsize(full_path) < 50000001:
                                     request.add_extracted(full_path, desc)
                                 matched = True
