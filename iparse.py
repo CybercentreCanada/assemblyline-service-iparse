@@ -93,7 +93,7 @@ class IPArse(ServiceBase):
 
         # Find IOCs in plist
         if self.patterns and plist_dict:
-            plist_str = json.dumps(plist_dict)
+            plist_str = json.dumps(plist_dict, default=str)
             self.extract_iocs(plist_str)
 
         return empty, plist_dict
@@ -260,8 +260,8 @@ class IPArse(ServiceBase):
 
         empty_file_msg = "Empty file. Archive contents may be encrypted."
         int_files = {}
-        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information (for new key-value pairs only)")
-        for root, dirs, files in os.walk(os.path.join(wrk_dir, self.working_directory)):
+        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information (displaying new key-value pairs only)")
+        for root, dirs, files in os.walk(wrk_dir):
                 for name in files:
                     full_path = safe_str(os.path.join(root, name))
                     if os.path.getsize(full_path) == 0:
@@ -278,7 +278,7 @@ class IPArse(ServiceBase):
                                 # Already identify main executable file above
                                 if not desc.startswith("Main executable file "):
                                     if desc.startswith("Plist"):
-                                        pres = ResultSection(SCORE.NULL, "{}:" .format(full_path))
+                                        pres = ResultSection(SCORE.NULL, "{}" .format(full_path.replace(wrk_dir, "")))
                                         isempty, plist_parsed = self.gen_plist_extract(full_path)
                                         if not isempty and plist_parsed:
                                             iden_key_res, unk_key_res = self.parse_plist(plist_dict)
