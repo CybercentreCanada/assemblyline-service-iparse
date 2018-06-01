@@ -251,19 +251,18 @@ class IPArse(ServiceBase):
 
         fextract_regs = [
             main_exe_reg,
-            (r'.*\.(?:crt|cer|der|key|p12|p7b|p7c|pem|pfx)$', "Certificate or key file"),
-            (r'.*libswift[^\/]\.dylib$', "Swift code library files"),
-            (r'META-INF\/.*ZipMetadata.plist$', "IPA archive content info"),
-            (r'.*mobileprovision$', "Provisioning profile for limiting app uploads"),
+            (r'Payload.*\.(?:crt|cer|der|key|p12|p7b|p7c|pem|pfx)$', "Certificate or key file"),
+            (r'Payload.*libswift[^\/]\.dylib$', "Swift code library files"),
+            (r'Payload\/META-INF\/.*ZipMetadata.plist$', "IPA archive content info"),
+            (r'Payload.*mobileprovision$', "Provisioning profile for limiting app uploads"),
             (r'.*plist$', "Plist information file"),
         ]
 
         empty_file_msg = "Empty file. Archive contents may be encrypted."
         int_files = {}
         plist_res = ResultSection(SCORE.NULL, "Other Plist File Information (for new key-value pairs only)")
-        for root, dirs, files in os.walk(os.path.join(wrk_dir, "Payload")):
+        for root, dirs, files in os.walk(os.path.join(wrk_dir, self.working_directory)):
                 for name in files:
-                    matched = False
                     full_path = safe_str(os.path.join(root, name))
                     if os.path.getsize(full_path) == 0:
                         if int_files.get(empty_file_msg, None):
