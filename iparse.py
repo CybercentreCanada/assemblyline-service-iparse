@@ -92,7 +92,7 @@ class IPArse(ServiceBase):
                     return empty, plist_dict
 
         # Find IOCs in plist
-        if self.patterns:
+        if self.patterns and plist_dict:
             plist_str = json.dumps(plist_dict)
             self.extract_iocs(plist_str)
 
