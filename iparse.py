@@ -18,6 +18,7 @@ class IPArse(ServiceBase):
         self.patterns = None
         self.result = None
         self.known_keys = None
+        self.reported_keys = {}
 
     def start(self):
         self.log.debug("iParse service started")
@@ -107,6 +108,13 @@ class IPArse(ServiceBase):
 
         for k, i in pdict.iteritems():
             k_noipad = k.replace("~ipad", "")
+            # Many plist files are duplicates of info.plist, do not report on keys already identified
+            if k_noipad in self.reported_keys:
+                if i in self.reported_keys[k_noipad]:
+                    continue
+                self.reported_keys[k_noipad].append(i)
+            else:
+                self.reported_keys[k_noipad] = [i]
             if k_noipad in self.known_keys:
                 try:
                     known.add("{} ({}):  {}".format(k, self.known_keys[k_noipad][0], i))
@@ -252,7 +260,7 @@ class IPArse(ServiceBase):
 
         empty_file_msg = "Empty file. Archive contents may be encrypted."
         int_files = {}
-        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information")
+        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information (for new key-value pairs only)")
         for root, dirs, files in os.walk(os.path.join(wrk_dir, "Payload")):
                 for name in files:
                     matched = False
