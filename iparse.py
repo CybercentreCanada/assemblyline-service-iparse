@@ -87,7 +87,8 @@ class IPArse(ServiceBase):
             except:
                 try:
                     plist_dict = biplist.readPlistFromString(info_plist)
-                except Exception as e:
+                except Exception:
+                    empty = True
                     return empty, plist_dict
 
         # Find IOCs in plist
