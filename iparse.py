@@ -195,7 +195,7 @@ class IPArse(ServiceBase):
         isempty, plist_dict = self.gen_plist_extract(info_plist_path, patterns)
 
         if plist_dict is None:
-            res.add_line("Info.plist in sample cannot be parsed. Sample may not corrupt.")
+            res.add_line("Info.plist in sample cannot be parsed. Sample may be corrupt.")
 
         elif isempty:
             res.add_line("Empty Info.plist file. Archive contents may be encrypted.")
@@ -284,7 +284,7 @@ class IPArse(ServiceBase):
                                         pres = ResultSection(SCORE.NULL, "{}" .format(full_path.replace(wrk_dir, "")))
                                         isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
                                         if not isempty and plist_parsed:
-                                            iden_key_res, unk_key_res = self.parse_plist(plist_dict)
+                                            iden_key_res, unk_key_res = self.parse_plist(plist_parsed)
                                             if iden_key_res:
                                                 pres.add_section(iden_key_res)
                                             if unk_key_res:
