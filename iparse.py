@@ -15,9 +15,9 @@ class IPArse(ServiceBase):
 
     def __init__(self, cfg=None):
         super(IPArse, self).__init__(cfg)
-        self.patterns = None
         self.result = None
         self.known_keys = None
+        self.reported_keys = None
 
     def start(self):
         self.log.debug("iParse service started")
@@ -58,8 +58,8 @@ class IPArse(ServiceBase):
             raise Exception(stderr)
         return
 
-    def extract_iocs(self, val):
-        st_value = self.patterns.ioc_match(val, bogon_ip=True)
+    def extract_iocs(self, val, patterns):
+        st_value = patterns.ioc_match(val, bogon_ip=True)
         if len(st_value) > 0:
             for ty, val in st_value.iteritems():
                 if val == "":
@@ -71,7 +71,7 @@ class IPArse(ServiceBase):
                         self.result.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
         return
 
-    def gen_plist_extract(self, plistfile):
+    def gen_plist_extract(self, plistfile, patterns):
         # Get PLIST dictionary
         empty = None
         plist_dict = None
@@ -87,13 +87,14 @@ class IPArse(ServiceBase):
             except:
                 try:
                     plist_dict = biplist.readPlistFromString(info_plist)
-                except Exception as e:
+                except Exception:
+                    empty = True
                     return empty, plist_dict
 
         # Find IOCs in plist
-        if self.patterns:
-            plist_str = json.dumps(plist_dict)
-            self.extract_iocs(plist_str)
+        if patterns and plist_dict:
+            plist_str = json.dumps(plist_dict, default=str)
+            self.extract_iocs(plist_str, patterns)
 
         return empty, plist_dict
 
@@ -107,6 +108,13 @@ class IPArse(ServiceBase):
 
         for k, i in pdict.iteritems():
             k_noipad = k.replace("~ipad", "")
+            # Many plist files are duplicates of info.plist, do not report on keys already identified
+            if k_noipad in self.reported_keys:
+                if i in self.reported_keys[k_noipad]:
+                    continue
+                self.reported_keys[k_noipad].append(i)
+            else:
+                self.reported_keys[k_noipad] = [i]
             if k_noipad in self.known_keys:
                 try:
                     known.add("{} ({}):  {}".format(k, self.known_keys[k_noipad][0], i))
@@ -144,6 +152,8 @@ class IPArse(ServiceBase):
         request.result = self.result
         wrk_dir = self.working_directory
         ipa_path = request.download()
+        self.known_keys = None
+        self.reported_keys = {}
 
         # Determine if PK container has IPA content to parse
         try:
@@ -173,15 +183,16 @@ class IPArse(ServiceBase):
             keys_dict = json.load(f)
             self.known_keys = keys_dict['glossary']
 
+        patterns = None
         if PatternMatch:
-            self.patterns = PatternMatch()
+            patterns = PatternMatch()
 
         # Info.plist
         main_exe = None
         res = ResultSection(SCORE.NULL, "Info.plist")
         info_plist_path = os.path.join(wrk_dir, isipa)
 
-        isempty, plist_dict = self.gen_plist_extract(info_plist_path)
+        isempty, plist_dict = self.gen_plist_extract(info_plist_path, patterns)
 
         if plist_dict is None:
             res.add_line("Info.plist in sample cannot be parsed. Sample may not corrupt.")
@@ -243,19 +254,18 @@ class IPArse(ServiceBase):
 
         fextract_regs = [
             main_exe_reg,
-            (r'.*\.(?:crt|cer|der|key|p12|p7b|p7c|pem|pfx)$', "Certificate or key file"),
-            (r'.*libswift[^\/]\.dylib$', "Swift code library files"),
-            (r'META-INF\/.*ZipMetadata.plist$', "IPA archive content info"),
-            (r'.*mobileprovision$', "Provisioning profile for limiting app uploads"),
+            (r'Payload.*\.(?:crt|cer|der|key|p12|p7b|p7c|pem|pfx)$', "Certificate or key file"),
+            (r'Payload.*libswift[^\/]\.dylib$', "Swift code library files"),
+            (r'Payload\/META-INF\/.*ZipMetadata.plist$', "IPA archive content info"),
+            (r'Payload.*mobileprovision$', "Provisioning profile for limiting app uploads"),
             (r'.*plist$', "Plist information file"),
         ]
 
         empty_file_msg = "Empty file. Archive contents may be encrypted."
         int_files = {}
-        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information")
-        for root, dirs, files in os.walk(os.path.join(wrk_dir, "Payload")):
+        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information (displaying new key-value pairs only)")
+        for root, dirs, files in os.walk(wrk_dir):
                 for name in files:
-                    matched = False
                     full_path = safe_str(os.path.join(root, name))
                     if os.path.getsize(full_path) == 0:
                         if int_files.get(empty_file_msg, None):
@@ -271,8 +281,8 @@ class IPArse(ServiceBase):
                                 # Already identify main executable file above
                                 if not desc.startswith("Main executable file "):
                                     if desc.startswith("Plist"):
-                                        pres = ResultSection(SCORE.NULL, "{}:" .format(full_path))
-                                        isempty, plist_parsed = self.gen_plist_extract(full_path)
+                                        pres = ResultSection(SCORE.NULL, "{}" .format(full_path.replace(wrk_dir, "")))
+                                        isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
                                         if not isempty and plist_parsed:
                                             iden_key_res, unk_key_res = self.parse_plist(plist_dict)
                                             if iden_key_res:
