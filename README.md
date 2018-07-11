@@ -1,39 +1,39 @@
 # IPArse Static Service
 
-Note: Currently this service is in the first stages of development and therefore this README may not be entirely accurate.
-
 Extracts information from IPA package files.
 
 ### Information Extracted 
 ##### Result Output
 1.  Identifies bundle's main executable file.
-2.  Lists Info.plist data and will identify known keys (listed in keys.json file) and unknown keys
+2.  Lists all PLIST file data and will identify known keys (listed in keys.json file) and unknown keys
 
     Tagged values in result:
     
-    -   APINSTALLERURL
-    -   BUILDMACHINEOSBUILD
-    -   CFBUNDLEDEVELOPMENTREGION
-    -   CFBUNDLEDISPLAYNAME
-    -   CFBUNDLEIDENTIFIER
-    -   CFBUNDLENAME
-    -   CFBUNDLEPACKAGETYPE
-    -   CFBUNDLESHORTVERSIONSTRING
-    -   CFBUNDLESIGNATURE
-    -   CFBUNDLEURLSCHEMES
-    -   CFBUNDLEVERSION
-    -   DTCOMPILER
-    -   DTPLATFORMBUILD
-    -   DTPLATFORMNAME
-    -   DTPLATFORMVERSION
-    -   LSBACKGROUNDONLY
-    -   LSMINIMUMSYSTEMVERSION
-    -   NSAPPLESCRIPTENABLED
-    -   NSPRINCIPALCLASS
-    -   REQUESTSOPENACCESS
-    -   UIBACKGROUNDMODES
-    -   UIREQUIRESPERSISTENTWIFI
-    -   WKAPPBUNDLEIDENITIFER
+    - APINSTALLERURL
+    - BUILDMACHINEOSBUILD
+    - CFBUNDLEDEVELOPMENTREGION
+    - CFBUNDLEDISPLAYNAME
+    - CFBUNDLEEXECUTABLE
+    - CFBUNDLEIDENTIFIER
+    - CFBUNDLENAME
+    - CFBUNDLEPACKAGETYPE
+    - CFBUNDLESHORTVERSIONSTRING
+    - CFBUNDLESIGNATURE
+    - CFBUNDLEURLSCHEMES
+    - CFBUNDLEVERSION
+    - DTCOMPILER
+    - DTPLATFORMBUILD
+    - DTPLATFORMNAME
+    - DTPLATFORMVERSION
+    - LSBACKGROUNDONLY
+    - LSMINIMUMSYSTEMVERSION
+    - MINIMUMOSVERSION
+    - NSAPPLESCRIPTENABLED
+    - NSPRINCIPALCLASS
+    - REQUESTSOPENACCESS
+    - UIBACKGROUNDMODES
+    - UIREQUIRESPERSISTENTWIFI
+    - WKAPPBUNDLEIDENITIFE
 
 3.  Will display information in PkgInfo file
 
@@ -41,4 +41,4 @@ Extracts information from IPA package files.
 
 ##### Extracted Files
 
-Will extract any file in the container <= 5MB
+This service does not extract the archived content as the AL Extract service will handle this function
