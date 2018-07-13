@@ -24,7 +24,8 @@ class IPArse(ServiceBase):
 
     # noinspection PyUnresolvedReferences,PyGlobalUndefined
     def import_service_deps(self):
-        global biplist, json, os, PatternMatch, plistlib, re, subprocess, unicodedata, zipfile
+        global biplist, defaultdict, json, os, PatternMatch, plistlib, re, subprocess, unicodedata, zipfile
+        from collections import defaultdict
         import biplist
         import os
         import json
@@ -71,6 +72,7 @@ class IPArse(ServiceBase):
                         self.result.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
         return
 
+
     def gen_plist_extract(self, plistfile, patterns):
         # Get PLIST dictionary
         empty = None
@@ -98,6 +100,18 @@ class IPArse(ServiceBase):
 
         return empty, plist_dict
 
+    @staticmethod
+    def merge_dicts(orig_dict):
+
+        dfli = defaultdict(list)
+        for x in orig_dict:
+            for k, v in x.iteritems():
+                dfli[k].append(v)
+
+        merged = dict(dfli)
+
+        return merged
+
     def parse_plist(self, pdict):
 
         idenkey_sec = None
@@ -106,7 +120,13 @@ class IPArse(ServiceBase):
         known = set()
         unknown = set()
 
+        #Sometimes bplist returns list of dictionaries. Will merge them for now
+        if isinstance(pdict, list):
+            pdict = self.merge_dicts(pdict)
+
         for k, i in pdict.iteritems():
+            k = safe_str(k)
+            i = safe_str(i)
             k_noipad = k.replace("~ipad", "")
             # Many plist files are duplicates of info.plist, do not report on keys already identified
             if k_noipad in self.reported_keys:
@@ -133,6 +153,9 @@ class IPArse(ServiceBase):
                     for val in i:
                         self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], val, TAG_WEIGHT.LOW)
                 else:
+                    # Account for boolean instead of strings
+                    if isinstance(i, bool):
+                        i = str(i)
                     self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], i, TAG_WEIGHT.LOW)
 
         if len(known) > 0:
@@ -285,6 +308,9 @@ class IPArse(ServiceBase):
                                         isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
                                         if not isempty and plist_parsed:
                                             iden_key_res, unk_key_res = self.parse_plist(plist_parsed)
+                                            # If all keys have already been reported, skip this plist
+                                            if not iden_key_res and not unk_key_res:
+                                                continue
                                             if iden_key_res:
                                                 pres.add_section(iden_key_res)
                                             if unk_key_res:
