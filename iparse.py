@@ -109,9 +109,9 @@ class IPArse(ServiceBase):
         for x in orig_dict:
             if isinstance(x, dict):
                 for k, v in x.iteritems():
-                    dfli[k].append(v)
+                    dfli[str(safe_str(k))].append(str(safe_str(v)))
             else:
-                dfli.setdefault(x)
+                dfli.setdefault(str(safe_str(x)))
 
         merged = dict(dfli)
 
