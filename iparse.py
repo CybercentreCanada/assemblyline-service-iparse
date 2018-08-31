@@ -95,18 +95,23 @@ class IPArse(ServiceBase):
 
         # Find IOCs in plist
         if patterns and plist_dict:
-            plist_str = json.dumps(plist_dict, default=str)
-            self.extract_iocs(plist_str, patterns)
-
+            try:
+                plist_str = json.dumps(plist_dict, default=str)
+                self.extract_iocs(plist_str, patterns)
+            except Exception:
+                pass
         return empty, plist_dict
 
     @staticmethod
-    def merge_dicts(orig_dict):
+    def transform_dicts(orig_dict):
 
         dfli = defaultdict(list)
         for x in orig_dict:
-            for k, v in x.iteritems():
-                dfli[k].append(v)
+            if isinstance(x, dict):
+                for k, v in x.iteritems():
+                    dfli[k].append(v)
+            else:
+                dfli.setdefault(x)
 
         merged = dict(dfli)
 
@@ -120,13 +125,16 @@ class IPArse(ServiceBase):
         known = set()
         unknown = set()
 
-        #Sometimes bplist returns list of dictionaries. Will merge them for now
+        # Sometimes plist is a list of dictionaries, or it is just a list. Will merge dict /convert to dict for now
         if isinstance(pdict, list):
-            pdict = self.merge_dicts(pdict)
+            pdict = self.transform_dicts(pdict)
 
         for k, i in pdict.iteritems():
-            k = safe_str(k)
-            i = safe_str(i)
+            k = str(safe_str(k))
+            if i:
+                i = ":  {}" .format(safe_str(i))
+            else:
+                i = ""
             k_noipad = k.replace("~ipad", "")
             # Many plist files are duplicates of info.plist, do not report on keys already identified
             if k_noipad in self.reported_keys:
@@ -137,26 +145,28 @@ class IPArse(ServiceBase):
                 self.reported_keys[k_noipad] = [i]
             if k_noipad in self.known_keys:
                 try:
-                    known.add("{} ({}):  {}".format(k, self.known_keys[k_noipad][0], i))
+                    known.add("{} ({}){}".format(k, self.known_keys[k_noipad][0], i))
                 except UnicodeEncodeError:
                     i = i.encode('utf8', 'replace')
-                    known.add("{} ({}):  {}".format(k, self.known_keys[k_noipad][0], i))
+                    known.add("{} ({}){}".format(k, self.known_keys[k_noipad][0], i))
             else:
                 try:
-                    unknown.add("{}:  {}".format(k, i))
+                    unknown.add("{}{}".format(k, i))
                 except UnicodeEncodeError:
                     i = i.encode('utf8', 'replace')
-                    unknown.add("{}:  {}".format(k, i))
+                    unknown.add("{}{}".format(k, i))
                 continue
             if self.known_keys[k_noipad][1]:
                 if isinstance(i, list):
                     for val in i:
-                        self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], val, TAG_WEIGHT.LOW)
+                        self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], val.replace(":  ", "", 1),
+                                            TAG_WEIGHT.LOW)
                 else:
                     # Account for boolean instead of strings
                     if isinstance(i, bool):
                         i = str(i)
-                    self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], i, TAG_WEIGHT.LOW)
+                    self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], i.replace(":  ", "", 1),
+                                        TAG_WEIGHT.LOW)
 
         if len(known) > 0:
             idenkey_sec = ResultSection(SCORE.NULL, "Identified Keys")
