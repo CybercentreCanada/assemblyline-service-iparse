@@ -98,7 +98,7 @@ class IPArse(ServiceBase):
             try:
                 plist_str = json.dumps(plist_dict, default=str)
                 self.extract_iocs(plist_str, patterns)
-            except UnicodeEncodeError:
+            except Exception:
                 pass
         return empty, plist_dict
 
@@ -130,7 +130,7 @@ class IPArse(ServiceBase):
             pdict = self.transform_dicts(pdict)
 
         for k, i in pdict.iteritems():
-            k = safe_str(k)
+            k = str(safe_str(k))
             if i:
                 i = ":  {}" .format(safe_str(i))
             else:
