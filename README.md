@@ -39,6 +39,8 @@ Extracts information from IPA package files.
 
 4.  Flags files of potential interest, for example certificate and plist files.
 
+5.  Detects IOC patterns using FrankenStrings Patterns module.
+
 ##### Extracted Files
 
 This service does not extract the archived content as the AL Extract service will handle this function
