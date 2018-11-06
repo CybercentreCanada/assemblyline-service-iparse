@@ -10,7 +10,7 @@ class IPArse(ServiceBase):
     SERVICE_VERSION = '1'
     SERVICE_TIMEOUT = 60
     SERVICE_ENABLED = True
-    SERVICE_CPU_CORES = 0.1
+    SERVICE_CPU_CORES = 0.5
     SERVICE_RAM_MB = 256
 
     def __init__(self, cfg=None):
