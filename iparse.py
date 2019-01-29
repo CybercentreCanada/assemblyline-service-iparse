@@ -40,6 +40,14 @@ class IPArse(ServiceBase):
             PatternMatch = None
 
     def isipa(self, zf):
+        """Determines if sample is an IPA file.
+
+        Args:
+            zf: Plist dictionary item.
+
+        Returns:
+            List of file names contained in archive and boolean value if sample is an IPA file.
+        """
         # Help from https://herkuang.info/en/2016/01/22/extract-app-info-in-ipa-files-using-python/
         name_list = zf.namelist()
         # Look for info.plist
@@ -51,6 +59,14 @@ class IPArse(ServiceBase):
         return name_list, False
 
     def extract_archive(self, zf):
+        """Extracts an archive file type to the file system.
+
+        Args:
+            zf: Archived file path.
+
+        Returns:
+            None.
+        """
         p = subprocess.Popen(["7z", "x", zf, "-o{}" .format(self.working_directory)], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
@@ -60,6 +76,15 @@ class IPArse(ServiceBase):
         return
 
     def extract_iocs(self, val, patterns):
+        """Finds IOC patterns and reports as an AL tag in result.
+
+        Args:
+            val: Value to be checked.
+            patterns: FrankenStrings Patterns() object.
+
+        Returns:
+            None.
+        """
         st_value = patterns.ioc_match(val, bogon_ip=True)
         if len(st_value) > 0:
             for ty, val in st_value.iteritems():
@@ -72,8 +97,16 @@ class IPArse(ServiceBase):
                         self.result.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
         return
 
-
     def gen_plist_extract(self, plistfile, patterns):
+        """Open plist file object and extract info.
+
+        Args:
+            orig_dict: Plist item of type LIST.
+            patterns: FrankenStrings Patterns() object.
+
+        Returns:
+            True if plist file is not empty and dictionary/list object containing plist information if present.
+        """
         # Get PLIST dictionary
         empty = None
         plist_dict = None
@@ -104,9 +137,17 @@ class IPArse(ServiceBase):
 
     @staticmethod
     def transform_dicts(orig_dict):
+        """Transforms a plist object that is type LIST to type DICT.
 
+        Args:
+            orig_dict: Plist item of type LIST.
+
+        Returns:
+            Transformed plist item.
+        """
         dfli = defaultdict(list)
         for x in orig_dict:
+            # If item is a dictionary, expand and add values
             if isinstance(x, dict):
                 for k, v in x.iteritems():
                     dfli[str(safe_str(k))].append(str(safe_str(v)))
@@ -118,6 +159,14 @@ class IPArse(ServiceBase):
         return merged
 
     def parse_plist(self, pdict):
+        """Attempts to extract and identify all known and unknown keys of a plist file.
+
+        Args:
+            pdict: Plist dictionary item.
+
+        Returns:
+            A list of known keys and a list of unknown keys.
+        """
 
         idenkey_sec = None
         unkkey_sec = None
@@ -181,6 +230,7 @@ class IPArse(ServiceBase):
         return idenkey_sec, unkkey_sec
 
     def execute(self, request):
+        """Main Module. See README for details."""
         self.result = Result()
         request.result = self.result
         wrk_dir = self.working_directory
@@ -342,5 +392,3 @@ class IPArse(ServiceBase):
                 intf_subsec = ResultSection(SCORE.NULL, intf_d, parent=intf_sec)
                 for f in intf_p:
                     intf_subsec.add_line(f.replace("{}/" .format(wrk_dir), ""))
-
-
