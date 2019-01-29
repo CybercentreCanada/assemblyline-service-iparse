@@ -43,7 +43,7 @@ class IPArse(ServiceBase):
         """Determines if sample is an IPA file.
 
         Args:
-            zf: Plist dictionary item.
+            zf: Archived file path.
 
         Returns:
             List of file names contained in archive and boolean value if sample is an IPA file.
