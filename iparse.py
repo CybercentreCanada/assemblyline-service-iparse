@@ -1,43 +1,33 @@
-from assemblyline.al.service.base import ServiceBase
-from assemblyline.common.charset import safe_str
-from assemblyline.al.common.result import Result, ResultSection, SCORE, TAG_TYPE, TAG_WEIGHT
+global biplist, defaultdict, json, os, PatternMatch, plistlib, re, subprocess, unicodedata, zipfile
+from collections import defaultdict
+from subprocess import Popen, PIPE
+import biplist
+import os
+import json
+import plistlib
+import re
+import unicodedata
+import zipfile
+try:
+    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
+except:
+    PatternMatch = None
+
+from assemblyline.common.str_utils import safe_str
+from assemblyline_v4_service.common.base import ServiceBase
+from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
+
 
 class IPArse(ServiceBase):
-    SERVICE_CATEGORY = 'Static Analysis'
-    SERVICE_ACCEPTS = 'archive/zip'
-    SERVICE_DESCRIPTION = "IPA File Analyzer"
-    SERVICE_REVISION = ServiceBase.parse_revision('$Id$')
-    SERVICE_VERSION = '1'
-    SERVICE_TIMEOUT = 60
-    SERVICE_ENABLED = True
-    SERVICE_CPU_CORES = 0.5
-    SERVICE_RAM_MB = 256
 
-    def __init__(self, cfg=None):
-        super(IPArse, self).__init__(cfg)
+    def __init__(self, config=None):
+        super(IPArse, self).__init__(config)
         self.result = None
         self.known_keys = None
         self.reported_keys = None
 
     def start(self):
         self.log.debug("iParse service started")
-
-    # noinspection PyUnresolvedReferences,PyGlobalUndefined
-    def import_service_deps(self):
-        global biplist, defaultdict, json, os, PatternMatch, plistlib, re, subprocess, unicodedata, zipfile
-        from collections import defaultdict
-        import biplist
-        import os
-        import json
-        import plistlib
-        import re
-        import subprocess
-        import unicodedata
-        import zipfile
-        try:
-            from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
-        except ImportError:
-            PatternMatch = None
 
     def isipa(self, zf):
         """Determines if sample is an IPA file.
@@ -67,10 +57,9 @@ class IPArse(ServiceBase):
         Returns:
             None.
         """
-        p = subprocess.Popen(["7z", "x", zf, "-o{}" .format(self.working_directory)], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
 
-        stdout, stderr = p.communicate()
+        stdout, stderr = Popen(["7z", "x", zf, f"-o{self._working_directory}"], #self.working_directory
+                               stdout=PIPE, stderr=PIPE).communicate()
         if stderr:
             raise Exception(stderr)
         return
@@ -87,14 +76,14 @@ class IPArse(ServiceBase):
         """
         st_value = patterns.ioc_match(val, bogon_ip=True)
         if len(st_value) > 0:
-            for ty, val in st_value.iteritems():
+            for ty, val in list(st_value.items()):
                 if val == "":
-                    asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
-                    self.result.add_tag(TAG_TYPE[ty], asc_asc, TAG_WEIGHT.LOW)
+                    asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore') #TAG_TYPE, TAG_WEIGHT.LOW
+                    self.result.add_tag(asc_asc)
                 else:
                     ulis = list(set(val))
                     for v in ulis:
-                        self.result.add_tag(TAG_TYPE[ty], v, TAG_WEIGHT.LOW)
+                        self.result.add_tag(ty, v) #TAG_TYPE, TAG_WEIGHT.LOW
         return
 
     def gen_plist_extract(self, plistfile, patterns):
@@ -149,7 +138,7 @@ class IPArse(ServiceBase):
         for x in orig_dict:
             # If item is a dictionary, expand and add values
             if isinstance(x, dict):
-                for k, v in x.iteritems():
+                for k, v in list(x.items()):
                     dfli[str(safe_str(k))].append(str(safe_str(v)))
             else:
                 dfli.setdefault(str(safe_str(x)))
@@ -178,10 +167,10 @@ class IPArse(ServiceBase):
         if isinstance(pdict, list):
             pdict = self.transform_dicts(pdict)
 
-        for k, i in pdict.iteritems():
+        for k, i in list(pdict.items()):
             k = str(safe_str(k))
             if i:
-                i = ":  {}" .format(safe_str(i))
+                i = f":  {safe_str(i)}"
             else:
                 i = ""
             k_noipad = k.replace("~ipad", "")
@@ -194,36 +183,34 @@ class IPArse(ServiceBase):
                 self.reported_keys[k_noipad] = [i]
             if k_noipad in self.known_keys:
                 try:
-                    known.add("{} ({}){}".format(k, self.known_keys[k_noipad][0], i))
+                    known.add(f"{k} ({self.known_keys[k_noipad][0]}){i}")
                 except UnicodeEncodeError:
                     i = i.encode('utf8', 'replace')
-                    known.add("{} ({}){}".format(k, self.known_keys[k_noipad][0], i))
+                    known.add(f"{k} ({self.known_keys[k_noipad][0]}){i}")
             else:
                 try:
-                    unknown.add("{}{}".format(k, i))
+                    unknown.add(f"{k}{i}")
                 except UnicodeEncodeError:
                     i = i.encode('utf8', 'replace')
-                    unknown.add("{}{}".format(k, i))
+                    unknown.add(f"{k}{i}")
                 continue
             if self.known_keys[k_noipad][1]:
                 if isinstance(i, list):
                     for val in i:
-                        self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], val.replace(":  ", "", 1),
-                                            TAG_WEIGHT.LOW)
+                        self.result.add_tag(f"PLIST_{k_noipad.upper()}", val.replace(":  ", "", 1)) #TAG_TYPE, TAG_WEIGHT.LOW
                 else:
                     # Account for boolean instead of strings
                     if isinstance(i, bool):
                         i = str(i)
-                    self.result.add_tag(TAG_TYPE["PLIST_{}".format(k_noipad.upper())], i.replace(":  ", "", 1),
-                                        TAG_WEIGHT.LOW)
+                    self.result.add_tag(f"PLIST_{k_noipad.upper()}", i.replace(":  ", "", 1)) #TAG_TYPE, TAG_WEIGHT.LOW
 
         if len(known) > 0:
-            idenkey_sec = ResultSection(SCORE.NULL, "Identified Keys")
+            idenkey_sec = ResultSection("Identified Keys") #SCORE.NULL
             for r in sorted(known):
                 idenkey_sec.add_line(r)
 
         if len(unknown) > 0:
-            unkkey_sec = ResultSection(SCORE.NULL, "UNIDENTIFIED KEYS:")
+            unkkey_sec = ResultSection("UNIDENTIFIED KEYS:") #SCORE.NULL
             for r in sorted(unknown):
                 unkkey_sec.add_line(r)
 
@@ -233,8 +220,8 @@ class IPArse(ServiceBase):
         """Main Module. See README for details."""
         self.result = Result()
         request.result = self.result
-        wrk_dir = self.working_directory
-        ipa_path = request.download()
+        wrk_dir = self._working_directory #self.working_directory
+        ipa_path = request.file_path
         self.known_keys = None
         self.reported_keys = {}
 
@@ -257,7 +244,7 @@ class IPArse(ServiceBase):
             self.extract_archive(ipa_path)
             extract_success = True
         except Exception as e:
-            self.log.error("Could not extract IPA file due to 7zip error {}" .format(e))
+            self.log.error(f"Could not extract IPA file due to 7zip error {e}" )
 
         if not extract_success:
             return
@@ -272,7 +259,7 @@ class IPArse(ServiceBase):
 
         # Info.plist
         main_exe = None
-        res = ResultSection(SCORE.NULL, "Info.plist")
+        res = ResultSection("Info.plist") #SCORE.NULL
         info_plist_path = os.path.join(wrk_dir, isipa)
 
         isempty, plist_dict = self.gen_plist_extract(info_plist_path, patterns)
@@ -288,18 +275,18 @@ class IPArse(ServiceBase):
             if plist_dict.get("CFBundleExecutable", None):
                 i = plist_dict["CFBundleExecutable"]
                 try:
-                    main_exe = (i, "Name of bundle's main executable file: {}".format(i))
+                    main_exe = (i, f"Name of bundle's main executable file: {i}")
                     res.add_line(main_exe[1])
                 except UnicodeEncodeError:
                     i = i.encode('utf8', 'replace')
-                    main_exe = (i, "Name of bundle's main executable file: {}".format(i))
+                    main_exe = (i, f"Name of bundle's main executable file: {i}")
                     res.add_line(main_exe[1])
 
             iden_key_res, unk_key_res = self.parse_plist(plist_dict)
             if iden_key_res:
-                res.add_section(iden_key_res)
+                res.add_subsection(iden_key_res)
             if unk_key_res:
-                res.add_section(unk_key_res)
+                res.add_subsection(unk_key_res)
             self.result.add_section(res)
 
         # PkgInfo file
@@ -312,7 +299,7 @@ class IPArse(ServiceBase):
         for fn in name_list:
             m = pattern.match(fn)
             if m is not None:
-                res = ResultSection(SCORE.NULL, "PkgInfo Details")
+                res = ResultSection("PkgInfo Details") #SCORE.NULL
                 pkg_info_path = os.path.join(wrk_dir, m.group())
                 with open(pkg_info_path, 'r') as f:
                     pkg_info = f.read()
@@ -324,14 +311,14 @@ class IPArse(ServiceBase):
                         if pkgtype in pkg_types:
                             pkgtype = pkg_types[pkgtype]
                         creator_code = pkg_info[4:]
-                        res = ResultSection(SCORE.NULL, "PkgInfo Details")
-                        res.add_line("Package Type: {}; Application Signature: {}".format(pkgtype, creator_code))
+                        res = ResultSection("PkgInfo Details") #SCORE.NULL
+                        res.add_line(f"Package Type: {pkgtype}; Application Signature: {creator_code}")
                     except Exception:
                         continue
                 self.result.add_section(res)
 
         if main_exe:
-            main_exe_reg = (r'.*{}$' .format(main_exe[0]), "Main executable file {}" .format(main_exe[0]))
+            main_exe_reg = (rf'.*{main_exe[0]}$' , f"Main executable file {main_exe[0]}")
         else:
             main_exe_reg = ('$', 'Place holder for missing main executable name.')
 
@@ -346,7 +333,7 @@ class IPArse(ServiceBase):
 
         empty_file_msg = "Empty file. Archive contents may be encrypted."
         int_files = {}
-        plist_res = ResultSection(SCORE.NULL, "Other Plist File Information (displaying new key-value pairs only)")
+        plist_res = ResultSection("Other Plist File Information (displaying new key-value pairs only)")
         for root, dirs, files in os.walk(wrk_dir):
                 for name in files:
                     full_path = safe_str(os.path.join(root, name))
@@ -364,7 +351,7 @@ class IPArse(ServiceBase):
                                 # Already identify main executable file above
                                 if not desc.startswith("Main executable file "):
                                     if desc.startswith("Plist"):
-                                        pres = ResultSection(SCORE.NULL, "{}" .format(full_path.replace(wrk_dir, "")))
+                                        pres = ResultSection(f"{full_path.replace(wrk_dir, '')}")
                                         isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
                                         if not isempty and plist_parsed:
                                             iden_key_res, unk_key_res = self.parse_plist(plist_parsed)
@@ -372,10 +359,10 @@ class IPArse(ServiceBase):
                                             if not iden_key_res and not unk_key_res:
                                                 continue
                                             if iden_key_res:
-                                                pres.add_section(iden_key_res)
+                                                pres.add_subsection(iden_key_res)
                                             if unk_key_res:
-                                                pres.add_section(unk_key_res)
-                                            plist_res.add_section(pres)
+                                                pres.add_subsection(unk_key_res)
+                                            plist_res.add_subsection(pres)
                                     elif int_files.get(desc, None):
                                         int_files[desc].append(full_path)
                                     else:
@@ -387,8 +374,8 @@ class IPArse(ServiceBase):
             self.result.add_section(plist_res)
 
         if len(int_files) > 0:
-            intf_sec = ResultSection(SCORE.NULL, "Files of interest", parent=res)
-            for intf_d, intf_p in int_files.iteritems():
-                intf_subsec = ResultSection(SCORE.NULL, intf_d, parent=intf_sec)
+            intf_sec = ResultSection("Files of interest", parent=res) #SCORE.NULL
+            for intf_d, intf_p in list(int_files.items()):
+                intf_subsec = ResultSection(intf_d, parent=intf_sec) #SCORE.NULL
                 for f in intf_p:
-                    intf_subsec.add_line(f.replace("{}/" .format(wrk_dir), ""))
+                    intf_subsec.add_line(f.replace(f"{wrk_dir}/", ""))
