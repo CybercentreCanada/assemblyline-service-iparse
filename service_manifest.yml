@@ -15,14 +15,6 @@ disable_cache: false
 enabled: true
 is_external: false
 licence_count: 0
-supported_platforms: [linux]
-
-heuristics:
-  - heur_id: 1
-    name: IPA Tag
-    filetype: archive/zip
-    score: 1
-    description: >
 
 docker_config:
    image: cccs/assemblyline-service-iparse:latest

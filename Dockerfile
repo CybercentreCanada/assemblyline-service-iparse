@@ -1,6 +1,6 @@
 FROM cccs/assemblyline-v4-service-base:latest
 
-ENV SERVICE_PATH iparse.IPArse
+ENV SERVICE_PATH iparse.iparse.IPArse
 
 RUN apt-get update && apt-get install -y \
   p7zip-full

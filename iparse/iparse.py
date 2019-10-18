@@ -285,7 +285,7 @@ class IPArse(ServiceBase):
 
         # Info.plist
         main_exe = None
-        res = ResultSection("Info.plist") #SCORE.NULL
+        res = ResultSection("Info.plist")
         info_plist_path = os.path.join(wrk_dir, isipa)
 
         isempty, plist_dict = self.gen_plist_extract(info_plist_path, patterns)
