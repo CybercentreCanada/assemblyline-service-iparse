@@ -1,33 +1,61 @@
-global biplist, defaultdict, json, os, PatternMatch, plistlib, re, subprocess, unicodedata, zipfile
-from collections import defaultdict
-from subprocess import Popen, PIPE
-import biplist
-import os
 import json
+import os
 import plistlib
 import re
 import unicodedata
 import zipfile
+from collections import defaultdict
+from subprocess import Popen, PIPE
+
+import biplist
+
 try:
-    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch
+    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch  # TODO
 except:
     PatternMatch = None
 
 from assemblyline.common.str_utils import safe_str
 from assemblyline_v4_service.common.base import ServiceBase
-from assemblyline_v4_service.common.result import Result, ResultSection, BODY_FORMAT
+from assemblyline_v4_service.common.result import Result, ResultSection
 
+
+TAG_MAP = {
+    "APINSTALLERURL": "file.plist.installer_url",
+    "BUILDMACHINEOSBUILD": "file.plist.build.machine_os",
+    "CFBUNDLEDEVELOPMENTREGION": "file.plist.cf_bundle.development_region",
+    "CFBUNDLEDISPLAYNAME": "file.plist.cf_bundle.display_name",
+    "CFBUNDLEEXECUTABLE": "file.plist.cf_bundle.executable",
+    "CFBUNDLEIDENTIFIER": "file.plist.cf_bundle.identifier",
+    "CFBUNDLENAME": "file.plist.cf_bundle.name",
+    "CFBUNDLEPACKAGETYPE": "file.plist.cf_bundle.pkg_type",
+    "CFBUNDLESIGNATURE": "file.plist.cf_bundle.signature",
+    "CFBUNDLEURLSCHEMES": "file.plist.cf_bundle.url_scheme",
+    "CFBUNDLEVERSION": "file.plist.cf_bundle.version.long",
+    "CFBUNDLESHORTVERSIONSTRING": "file.plist.cf_bundle.version.short",
+    "DTCOMPILER": "file.plist.dt.compiler",
+    "DTPLATFORMBUILD": "file.plist.dt.platform.build",
+    "DTPLATFORMNAME": "file.plist.dt.platform.name",
+    "DTPLATFORMVERSION": "file.plist.dt.platform.version",
+    "LSBACKGROUNDONLY": "file.plist.ls.background_only",
+    "LSMINIMUMSYSTEMVERSION": "file.plist.ls.min_system_version",
+    "MINIMUMOSVERSION": "file.plist.min_os_version",
+    "NSAPPLESCRIPTENABLED": "file.plist.ns.apple_script_enabled",
+    "NSPRINCIPALCLASS": "file.plist.ns.principal_class",
+    "REQUESTSOPENACCESS": "file.plist.requests_open_access",
+    "UIBACKGROUNDMODES": "file.plist.ui.background_modes",
+    "UIREQUIRESPERSISTENTWIFI": "file.plist.ui.requires_persistent_wifi",
+    "WKAPPBUNDLEIDENITIFER": "file.plist.wk.app_bundle_identifier",
+}
 
 class IPArse(ServiceBase):
 
     def __init__(self, config=None):
         super(IPArse, self).__init__(config)
-        self.result = None
         self.known_keys = None
         self.reported_keys = None
 
     def start(self):
-        self.log.debug("iParse service started")
+        self.log.debug("IPArse service started")
 
     def isipa(self, zf):
         """Determines if sample is an IPA file.
@@ -58,8 +86,7 @@ class IPArse(ServiceBase):
             None.
         """
 
-        stdout, stderr = Popen(["7z", "x", zf, f"-o{self._working_directory}"], #self.working_directory
-                               stdout=PIPE, stderr=PIPE).communicate()
+        stdout, stderr = Popen(["7z", "x", zf, f"-o{self.working_directory}"], stdout=PIPE, stderr=PIPE).communicate()
         if stderr:
             raise Exception(stderr)
         return
@@ -99,7 +126,7 @@ class IPArse(ServiceBase):
         # Get PLIST dictionary
         empty = None
         plist_dict = None
-        with open(plistfile, 'r') as f:
+        with open(plistfile, 'rb') as f:
             info_plist = f.read()
 
         if info_plist == "":
@@ -147,7 +174,7 @@ class IPArse(ServiceBase):
 
         return merged
 
-    def parse_plist(self, pdict):
+    def parse_plist(self, pdict, res):
         """Attempts to extract and identify all known and unknown keys of a plist file.
 
         Args:
@@ -197,20 +224,20 @@ class IPArse(ServiceBase):
             if self.known_keys[k_noipad][1]:
                 if isinstance(i, list):
                     for val in i:
-                        self.result.add_tag(f"PLIST_{k_noipad.upper()}", val.replace(":  ", "", 1)) #TAG_TYPE, TAG_WEIGHT.LOW
+                        res.add_tag(TAG_MAP[k_noipad.upper()], val.replace(":  ", "", 1))
                 else:
                     # Account for boolean instead of strings
                     if isinstance(i, bool):
                         i = str(i)
-                    self.result.add_tag(f"PLIST_{k_noipad.upper()}", i.replace(":  ", "", 1)) #TAG_TYPE, TAG_WEIGHT.LOW
+                    res.add_tag(TAG_MAP[k_noipad.upper()], i.replace(":  ", "", 1))
 
         if len(known) > 0:
-            idenkey_sec = ResultSection("Identified Keys") #SCORE.NULL
+            idenkey_sec = ResultSection("Identified Keys")
             for r in sorted(known):
                 idenkey_sec.add_line(r)
 
         if len(unknown) > 0:
-            unkkey_sec = ResultSection("UNIDENTIFIED KEYS:") #SCORE.NULL
+            unkkey_sec = ResultSection("UNIDENTIFIED KEYS:")
             for r in sorted(unknown):
                 unkkey_sec.add_line(r)
 
@@ -218,9 +245,8 @@ class IPArse(ServiceBase):
 
     def execute(self, request):
         """Main Module. See README for details."""
-        self.result = Result()
-        request.result = self.result
-        wrk_dir = self._working_directory #self.working_directory
+        request.result = Result()
+        wrk_dir = self.working_directory
         ipa_path = request.file_path
         self.known_keys = None
         self.reported_keys = {}
@@ -244,7 +270,7 @@ class IPArse(ServiceBase):
             self.extract_archive(ipa_path)
             extract_success = True
         except Exception as e:
-            self.log.error(f"Could not extract IPA file due to 7zip error {e}" )
+            self.log.error(f"Could not extract IPA file due to 7zip error {e}")
 
         if not extract_success:
             return
@@ -282,12 +308,12 @@ class IPArse(ServiceBase):
                     main_exe = (i, f"Name of bundle's main executable file: {i}")
                     res.add_line(main_exe[1])
 
-            iden_key_res, unk_key_res = self.parse_plist(plist_dict)
+            iden_key_res, unk_key_res = self.parse_plist(plist_dict, res)
             if iden_key_res:
                 res.add_subsection(iden_key_res)
             if unk_key_res:
                 res.add_subsection(unk_key_res)
-            self.result.add_section(res)
+            request.result.add_section(res)
 
         # PkgInfo file
         pkg_types = {
@@ -299,7 +325,7 @@ class IPArse(ServiceBase):
         for fn in name_list:
             m = pattern.match(fn)
             if m is not None:
-                res = ResultSection("PkgInfo Details") #SCORE.NULL
+                res = ResultSection("PkgInfo Details")
                 pkg_info_path = os.path.join(wrk_dir, m.group())
                 with open(pkg_info_path, 'r') as f:
                     pkg_info = f.read()
@@ -311,11 +337,11 @@ class IPArse(ServiceBase):
                         if pkgtype in pkg_types:
                             pkgtype = pkg_types[pkgtype]
                         creator_code = pkg_info[4:]
-                        res = ResultSection("PkgInfo Details") #SCORE.NULL
+                        res = ResultSection("PkgInfo Details")
                         res.add_line(f"Package Type: {pkgtype}; Application Signature: {creator_code}")
                     except Exception:
                         continue
-                self.result.add_section(res)
+                request.result.add_section(res)
 
         if main_exe:
             main_exe_reg = (rf'.*{main_exe[0]}$' , f"Main executable file {main_exe[0]}")
@@ -346,7 +372,7 @@ class IPArse(ServiceBase):
                     else:
                         for p, desc in fextract_regs:
                             pattern = re.compile(p)
-                            m = pattern.match(full_path.decode("utf8"))
+                            m = pattern.match(full_path)
                             if m is not None:
                                 # Already identify main executable file above
                                 if not desc.startswith("Main executable file "):
@@ -354,7 +380,7 @@ class IPArse(ServiceBase):
                                         pres = ResultSection(f"{full_path.replace(wrk_dir, '')}")
                                         isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
                                         if not isempty and plist_parsed:
-                                            iden_key_res, unk_key_res = self.parse_plist(plist_parsed)
+                                            iden_key_res, unk_key_res = self.parse_plist(plist_parsed, pres)
                                             # If all keys have already been reported, skip this plist
                                             if not iden_key_res and not unk_key_res:
                                                 continue
@@ -371,11 +397,11 @@ class IPArse(ServiceBase):
                                 break
 
         if len(plist_res.subsections) > 0:
-            self.result.add_section(plist_res)
+            request.result.add_section(plist_res)
 
         if len(int_files) > 0:
-            intf_sec = ResultSection("Files of interest", parent=res) #SCORE.NULL
-            for intf_d, intf_p in list(int_files.items()):
-                intf_subsec = ResultSection(intf_d, parent=intf_sec) #SCORE.NULL
+            intf_sec = ResultSection("Files of interest", parent=res)
+            for intf_d, intf_p in int_files.items():
+                intf_subsec = ResultSection(intf_d, parent=intf_sec)
                 for f in intf_p:
                     intf_subsec.add_line(f.replace(f"{wrk_dir}/", ""))
