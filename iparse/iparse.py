@@ -86,7 +86,8 @@ class IPArse(ServiceBase):
             None.
         """
 
-        stdout, stderr = Popen(["7z", "x", zf, f"-o{self.working_directory}"], stdout=PIPE, stderr=PIPE).communicate()
+        stdout, stderr = Popen(['7z', 'x', zf, f"-o{self.working_directory}"], stdout=PIPE, stderr=PIPE).communicate()
+
         if stderr:
             raise Exception(stderr)
         return
@@ -105,12 +106,12 @@ class IPArse(ServiceBase):
         if len(st_value) > 0:
             for ty, val in list(st_value.items()):
                 if val == "":
-                    asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore') #TAG_TYPE, TAG_WEIGHT.LOW
-                    self.result.add_tag(asc_asc)
+                    asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
+                    self.result.add_tag(ty, asc_asc)
                 else:
                     ulis = list(set(val))
                     for v in ulis:
-                        self.result.add_tag(ty, v) #TAG_TYPE, TAG_WEIGHT.LOW
+                        self.result.add_tag(ty, v)
         return
 
     def gen_plist_extract(self, plistfile, patterns):
