@@ -1,0 +1,22 @@
+name: IPArse
+version: 1
+description: >
+   This service is an IPA File Analyzer
+
+accepts: archive/zip
+
+stage: CORE
+category: Static Analysis
+
+file_required: true
+timeout: 60
+disable_cache: false
+
+enabled: true
+is_external: false
+licence_count: 0
+
+docker_config:
+   image: cccs/assemblyline-service-iparse:latest
+   cpu_cores: 0.5
+   ram_mb: 256
