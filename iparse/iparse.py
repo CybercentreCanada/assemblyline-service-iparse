@@ -47,10 +47,12 @@ TAG_MAP = {
     "WKAPPBUNDLEIDENITIFER": "file.plist.wk.app_bundle_identifier",
 }
 
+
 class IPArse(ServiceBase):
 
     def __init__(self, config=None):
         super(IPArse, self).__init__(config)
+        self.result = None
         self.known_keys = None
         self.reported_keys = None
 
@@ -135,7 +137,7 @@ class IPArse(ServiceBase):
             return empty, plist_dict
         else:
             try:
-                plist_dict = plistlib.readPlistFromString(info_plist)
+                plist_dict = plistlib.loads(info_plist)
             except:
                 try:
                     plist_dict = biplist.readPlistFromString(info_plist)
@@ -247,6 +249,7 @@ class IPArse(ServiceBase):
     def execute(self, request):
         """Main Module. See README for details."""
         request.result = Result()
+        self.result = request.result
         wrk_dir = self.working_directory
         ipa_path = request.file_path
         self.known_keys = None
@@ -345,7 +348,7 @@ class IPArse(ServiceBase):
                 request.result.add_section(res)
 
         if main_exe:
-            main_exe_reg = (rf'.*{main_exe[0]}$' , f"Main executable file {main_exe[0]}")
+            main_exe_reg = (rf'.*{main_exe[0]}$', f"Main executable file {main_exe[0]}")
         else:
             main_exe_reg = ('$', 'Place holder for missing main executable name.')
 
@@ -362,40 +365,40 @@ class IPArse(ServiceBase):
         int_files = {}
         plist_res = ResultSection("Other Plist File Information (displaying new key-value pairs only)")
         for root, dirs, files in os.walk(wrk_dir):
-                for name in files:
-                    full_path = safe_str(os.path.join(root, name))
-                    if os.path.getsize(full_path) == 0:
-                        if int_files.get(empty_file_msg, None):
-                            int_files[empty_file_msg].append(full_path)
-                        else:
-                            int_files[empty_file_msg] = []
-                            int_files[empty_file_msg].append(full_path)
+            for name in files:
+                full_path = safe_str(os.path.join(root, name))
+                if os.path.getsize(full_path) == 0:
+                    if int_files.get(empty_file_msg, None):
+                        int_files[empty_file_msg].append(full_path)
                     else:
-                        for p, desc in fextract_regs:
-                            pattern = re.compile(p)
-                            m = pattern.match(full_path)
-                            if m is not None:
-                                # Already identify main executable file above
-                                if not desc.startswith("Main executable file "):
-                                    if desc.startswith("Plist"):
-                                        pres = ResultSection(f"{full_path.replace(wrk_dir, '')}")
-                                        isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
-                                        if not isempty and plist_parsed:
-                                            iden_key_res, unk_key_res = self.parse_plist(plist_parsed, pres)
-                                            # If all keys have already been reported, skip this plist
-                                            if not iden_key_res and not unk_key_res:
-                                                continue
-                                            if iden_key_res:
-                                                pres.add_subsection(iden_key_res)
-                                            if unk_key_res:
-                                                pres.add_subsection(unk_key_res)
-                                            plist_res.add_subsection(pres)
-                                    elif int_files.get(desc, None):
-                                        int_files[desc].append(full_path)
-                                    else:
-                                        int_files[desc] = []
-                                        int_files[desc].append(full_path)
-                                break
+                        int_files[empty_file_msg] = []
+                        int_files[empty_file_msg].append(full_path)
+                else:
+                    for p, desc in fextract_regs:
+                        pattern = re.compile(p)
+                        m = pattern.match(full_path)
+                        if m is not None:
+                            # Already identify main executable file above
+                            if not desc.startswith("Main executable file "):
+                                if desc.startswith("Plist"):
+                                    pres = ResultSection(f"{full_path.replace(wrk_dir, '')}")
+                                    isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
+                                    if not isempty and plist_parsed:
+                                        iden_key_res, unk_key_res = self.parse_plist(plist_parsed, pres)
+                                        # If all keys have already been reported, skip this plist
+                                        if not iden_key_res and not unk_key_res:
+                                            continue
+                                        if iden_key_res:
+                                            pres.add_subsection(iden_key_res)
+                                        if unk_key_res:
+                                            pres.add_subsection(unk_key_res)
+                                        plist_res.add_subsection(pres)
+                                elif int_files.get(desc, None):
+                                    int_files[desc].append(full_path)
+                                else:
+                                    int_files[desc] = []
+                                    int_files[desc].append(full_path)
+                            break
 
         if len(plist_res.subsections) > 0:
             request.result.add_section(plist_res)
