@@ -9,15 +9,10 @@ from subprocess import Popen, PIPE
 
 import biplist
 
-try:
-    from al_services.alsvc_frankenstrings.balbuzard.patterns import PatternMatch  # TODO
-except:
-    PatternMatch = None
-
 from assemblyline.common.str_utils import safe_str
+from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection
-
 
 TAG_MAP = {
     "APINSTALLERURL": "file.plist.installer_url",
