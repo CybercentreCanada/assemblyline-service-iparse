@@ -3,7 +3,7 @@ version: 1
 description: >
    This service is an IPA File Analyzer
 
-accepts: archive/zip
+accepts: ios/ipa
 
 stage: CORE
 category: Static Analysis
