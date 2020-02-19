@@ -172,7 +172,7 @@ class IPArse(ServiceBase):
 
         return merged
 
-    def parse_plist(self, pdict, res):
+    def parse_plist(self, pdict):
         """Attempts to extract and identify all known and unknown keys of a plist file.
 
         Args:
@@ -182,23 +182,24 @@ class IPArse(ServiceBase):
             A list of known keys and a list of unknown keys.
         """
 
-        idenkey_sec = None
-        unkkey_sec = None
-
-        known = set()
-        unknown = set()
+        idenkey_sec = ResultSection("Identified Keys")
+        unkkey_sec = ResultSection("Unidentified Keys:")
 
         # Sometimes plist is a list of dictionaries, or it is just a list. Will merge dict /convert to dict for now
         if isinstance(pdict, list):
             pdict = self.transform_dicts(pdict)
 
         for k, i in list(pdict.items()):
+            # Prepare Keys
             k = str(safe_str(k))
-            if i:
-                i = f":  {safe_str(i)}"
-            else:
-                i = ""
             k_noipad = k.replace("~ipad", "")
+
+            # Prepare values
+            if i is None:
+                i = [""]
+            elif not isinstance(i, list):
+                i = [i]
+
             # Many plist files are duplicates of info.plist, do not report on keys already identified
             if k_noipad in self.reported_keys:
                 if i in self.reported_keys[k_noipad]:
@@ -206,38 +207,24 @@ class IPArse(ServiceBase):
                 self.reported_keys[k_noipad].append(i)
             else:
                 self.reported_keys[k_noipad] = [i]
+
+            # Process known keys
             if k_noipad in self.known_keys:
-                try:
-                    known.add(f"{k} ({self.known_keys[k_noipad][0]}){i}")
-                except UnicodeEncodeError:
-                    i = i.encode('utf8', 'replace')
-                    known.add(f"{k} ({self.known_keys[k_noipad][0]}){i}")
-            else:
-                try:
-                    unknown.add(f"{k}{i}")
-                except UnicodeEncodeError:
-                    i = i.encode('utf8', 'replace')
-                    unknown.add(f"{k}{i}")
-                continue
-            if self.known_keys[k_noipad][1]:
-                if isinstance(i, list):
+                desc, create_tag = self.known_keys[k_noipad]
+
+                idenkey_sec.add_line(f"{k} ({desc}): {', '.join([safe_str(x, force_str=True) for x in i])}")
+                if create_tag:
                     for val in i:
-                        res.add_tag(TAG_MAP[k_noipad.upper()], val.replace(":  ", "", 1))
-                else:
-                    # Account for boolean instead of strings
-                    if isinstance(i, bool):
-                        i = str(i)
-                    res.add_tag(TAG_MAP[k_noipad.upper()], i.replace(":  ", "", 1))
+                        idenkey_sec.add_tag(TAG_MAP[k_noipad.upper()], safe_str(val, force_str=True))
 
-        if len(known) > 0:
-            idenkey_sec = ResultSection("Identified Keys")
-            for r in sorted(known):
-                idenkey_sec.add_line(r)
+            else:
+                unkkey_sec.add_line(f"{k}: {', '.join([safe_str(x, force_str=True) for x in i])}")
 
-        if len(unknown) > 0:
-            unkkey_sec = ResultSection("UNIDENTIFIED KEYS:")
-            for r in sorted(unknown):
-                unkkey_sec.add_line(r)
+        if idenkey_sec.body is None:
+            idenkey_sec = None
+
+        if unkkey_sec.body is None:
+            unkkey_sec = None
 
         return idenkey_sec, unkkey_sec
 
@@ -307,7 +294,7 @@ class IPArse(ServiceBase):
                     main_exe = (i, f"Name of bundle's main executable file: {i}")
                     res.add_line(main_exe[1])
 
-            iden_key_res, unk_key_res = self.parse_plist(plist_dict, res)
+            iden_key_res, unk_key_res = self.parse_plist(plist_dict)
             if iden_key_res:
                 res.add_subsection(iden_key_res)
             if unk_key_res:
@@ -379,7 +366,7 @@ class IPArse(ServiceBase):
                                     pres = ResultSection(f"{full_path.replace(wrk_dir, '')}")
                                     isempty, plist_parsed = self.gen_plist_extract(full_path, patterns)
                                     if not isempty and plist_parsed:
-                                        iden_key_res, unk_key_res = self.parse_plist(plist_parsed, pres)
+                                        iden_key_res, unk_key_res = self.parse_plist(plist_parsed)
                                         # If all keys have already been reported, skip this plist
                                         if not iden_key_res and not unk_key_res:
                                             continue
