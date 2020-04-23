@@ -54,7 +54,8 @@ class IPArse(ServiceBase):
     def start(self):
         self.log.debug("IPArse service started")
 
-    def isipa(self, zf):
+    @staticmethod
+    def isipa(zf):
         """Determines if sample is an IPA file.
 
         Args:
@@ -115,7 +116,7 @@ class IPArse(ServiceBase):
         """Open plist file object and extract info.
 
         Args:
-            orig_dict: Plist item of type LIST.
+            plistfile: Plist item of type LIST.
             patterns: FrankenStrings Patterns() object.
 
         Returns:
@@ -131,9 +132,11 @@ class IPArse(ServiceBase):
             empty = True
             return empty, plist_dict
         else:
+            # noinspection PyBroadException
             try:
                 plist_dict = plistlib.loads(info_plist)
-            except:
+            except Exception:
+                # noinspection PyBroadException
                 try:
                     plist_dict = biplist.readPlistFromString(info_plist)
                 except Exception:
@@ -142,6 +145,7 @@ class IPArse(ServiceBase):
 
         # Find IOCs in plist
         if patterns and plist_dict:
+            # noinspection PyBroadException
             try:
                 plist_str = json.dumps(plist_dict, default=str)
                 self.extract_iocs(plist_str, patterns)
@@ -318,6 +322,7 @@ class IPArse(ServiceBase):
                 if pkg_info == "":
                     res.add_line("Empty PkgInfo file. Archive contents may be encrypted.")
                 elif len(pkg_info) == 8:
+                    # noinspection PyBroadException
                     try:
                         pkgtype = pkg_info[0:4]
                         if pkgtype in pkg_types:
