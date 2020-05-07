@@ -269,9 +269,7 @@ class IPArse(ServiceBase):
             keys_dict = json.load(f)
             self.known_keys = keys_dict['glossary']
 
-        patterns = None
-        if PatternMatch:
-            patterns = PatternMatch()
+        patterns = PatternMatch()
 
         # Info.plist
         main_exe = None
