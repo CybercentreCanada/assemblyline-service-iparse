@@ -1,5 +1,5 @@
 name: IPArse
-version: 1
+version: $SERVICE_TAG
 description: >
    This service is an IPA File Analyzer
 
@@ -17,6 +17,6 @@ is_external: false
 licence_count: 0
 
 docker_config:
-   image: ${REGISTRY}cccs/assemblyline-service-iparse:latest
+   image: ${REGISTRY}cccs/assemblyline-service-iparse:$SERVICE_TAG
    cpu_cores: 0.5
    ram_mb: 256
