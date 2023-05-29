@@ -5,12 +5,11 @@ import re
 import unicodedata
 import zipfile
 from collections import defaultdict
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 import biplist
-
 from assemblyline.common.str_utils import safe_str
-from assemblyline_v4_service.common.balbuzard.patterns import PatternMatch
+from assemblyline_service_utilities.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
 from assemblyline_v4_service.common.result import Result, ResultSection
 
