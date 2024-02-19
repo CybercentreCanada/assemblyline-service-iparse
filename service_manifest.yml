@@ -15,8 +15,9 @@ disable_cache: false
 enabled: true
 is_external: false
 licence_count: 0
+privileged: true
 
 docker_config:
    image: ${REGISTRY}cccs/assemblyline-service-iparse:$SERVICE_TAG
    cpu_cores: 0.5
-   ram_mb: 256
+   ram_mb: 1024
