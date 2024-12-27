@@ -1,23 +1,28 @@
 name: IPArse
 version: $SERVICE_TAG
-description: >
-   This service is an IPA File Analyzer
+description: This service extracts information from IPA package files.
 
+# Regex defining the types of files the service accepts and rejects
 accepts: ios/ipa
+rejects: empty|metadata.*
 
+# At which stage the service should run (one of FILTER, EXTRACT, CORE, SECONDARY, POST, REVIEW)
+# NOTE: Stages are executed in the order defined in the list
 stage: CORE
+# Which category the service is part of (one of Antivirus, Dynamic Analysis, External, Extraction, Filtering, Internet Connected, Networking, Static Analysis)
 category: Static Analysis
 
+# Does the service require access to the file to perform its task
+# If set to false, the service will only have access to the file metadata (e.g. Hashes, size, type, ...)
 file_required: true
+# Maximum execution time the service has before it's considered to be timed out
 timeout: 60
-disable_cache: false
 
+# is the service enabled by default
 enabled: true
-is_external: false
-licence_count: 0
 privileged: true
 
 docker_config:
-   image: ${REGISTRY}cccs/assemblyline-service-iparse:$SERVICE_TAG
-   cpu_cores: 0.5
-   ram_mb: 1024
+  image: ${REGISTRY}cccs/assemblyline-service-iparse:$SERVICE_TAG
+  cpu_cores: 0.5
+  ram_mb: 1024

@@ -66,7 +66,7 @@ class IPArse(ServiceBase):
         # Help from https://herkuang.info/en/2016/01/22/extract-app-info-in-ipa-files-using-python/
         name_list = zf.namelist()
         # Look for info.plist
-        pattern = re.compile(r'Payload/[^/]*.app/Info.plist')
+        pattern = re.compile(r"Payload/[^/]*.app/Info.plist")
         for p in name_list:
             m = pattern.match(p)
             if m is not None:
@@ -83,7 +83,7 @@ class IPArse(ServiceBase):
             None.
         """
 
-        stdout, stderr = Popen(['7z', 'x', zf, f"-o{self.working_directory}"], stdout=PIPE, stderr=PIPE).communicate()
+        stdout, stderr = Popen(["7z", "x", zf, f"-o{self.working_directory}"], stdout=PIPE, stderr=PIPE).communicate()
 
         if stderr:
             raise Exception(stderr)
@@ -103,7 +103,7 @@ class IPArse(ServiceBase):
         if len(st_value) > 0:
             for ty, val in list(st_value.items()):
                 if val == "":
-                    asc_asc = unicodedata.normalize('NFKC', val).encode('ascii', 'ignore')
+                    asc_asc = unicodedata.normalize("NFKC", val).encode("ascii", "ignore")
                     self.result.add_tag(ty, asc_asc)
                 else:
                     ulis = list(set(val))
@@ -124,7 +124,7 @@ class IPArse(ServiceBase):
         # Get PLIST dictionary
         empty = None
         plist_dict = None
-        with open(plistfile, 'rb') as f:
+        with open(plistfile, "rb") as f:
             info_plist = f.read()
 
         if info_plist == "":
@@ -264,9 +264,9 @@ class IPArse(ServiceBase):
         if not extract_success:
             return
 
-        with open(os.path.join(os.path.dirname(__file__), "keys.json"), 'r') as f:
+        with open(os.path.join(os.path.dirname(__file__), "keys.json"), "r") as f:
             keys_dict = json.load(f)
-            self.known_keys = keys_dict['glossary']
+            self.known_keys = keys_dict["glossary"]
 
         patterns = PatternMatch()
 
@@ -291,7 +291,7 @@ class IPArse(ServiceBase):
                     main_exe = (i, f"Name of bundle's main executable file: {i}")
                     res.add_line(main_exe[1])
                 except UnicodeEncodeError:
-                    i = i.encode('utf8', 'replace')
+                    i = i.encode("utf8", "replace")
                     main_exe = (i, f"Name of bundle's main executable file: {i}")
                     res.add_line(main_exe[1])
 
@@ -303,18 +303,14 @@ class IPArse(ServiceBase):
             request.result.add_section(res)
 
         # PkgInfo file
-        pkg_types = {
-            'APPL': 'application',
-            'FMWK': 'frameworks',
-            'BNDL': 'loadable bundle'
-        }
-        pattern = re.compile(r'Payload/[^/]*.app/PkgInfo')
+        pkg_types = {"APPL": "application", "FMWK": "frameworks", "BNDL": "loadable bundle"}
+        pattern = re.compile(r"Payload/[^/]*.app/PkgInfo")
         for fn in name_list:
             m = pattern.match(fn)
             if m is not None:
                 res = ResultSection("PkgInfo Details")
                 pkg_info_path = os.path.join(wrk_dir, m.group())
-                with open(pkg_info_path, 'r') as f:
+                with open(pkg_info_path, "r") as f:
                     pkg_info = f.read()
                 if pkg_info == "":
                     res.add_line("Empty PkgInfo file. Archive contents may be encrypted.")
@@ -332,17 +328,17 @@ class IPArse(ServiceBase):
                 request.result.add_section(res)
 
         if main_exe:
-            main_exe_reg = (rf'.*{main_exe[0]}$', f"Main executable file {main_exe[0]}")
+            main_exe_reg = (rf".*{main_exe[0]}$", f"Main executable file {main_exe[0]}")
         else:
-            main_exe_reg = ('$', 'Place holder for missing main executable name.')
+            main_exe_reg = ("$", "Place holder for missing main executable name.")
 
         fextract_regs = [
             main_exe_reg,
-            (r'Payload.*\.(?:crt|cer|der|key|p12|p7b|p7c|pem|pfx)$', "Certificate or key file"),
-            (r'Payload.*libswift[^\/]\.dylib$', "Swift code library files"),
-            (r'Payload\/META-INF\/.*ZipMetadata.plist$', "IPA archive content info"),
-            (r'Payload.*mobileprovision$', "Provisioning profile for limiting app uploads"),
-            (r'.*plist$', "Plist information file"),
+            (r"Payload.*\.(?:crt|cer|der|key|p12|p7b|p7c|pem|pfx)$", "Certificate or key file"),
+            (r"Payload.*libswift[^\/]\.dylib$", "Swift code library files"),
+            (r"Payload\/META-INF\/.*ZipMetadata.plist$", "IPA archive content info"),
+            (r"Payload.*mobileprovision$", "Provisioning profile for limiting app uploads"),
+            (r".*plist$", "Plist information file"),
         ]
 
         empty_file_msg = "Empty file. Archive contents may be encrypted."
