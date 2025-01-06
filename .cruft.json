@@ -8,7 +8,6 @@
       "__svc_name": "iparse",
       "__repository": "assemblyline-service-iparse",
       "__pkg_name": "iparse",
-      "__class_name": "Iparse",
       "short_description": "This service extracts information from IPA package files.",
       "short_description_fr": "Ce service extrait des informations des fichiers de paquets IPA.",
       "stage": "CORE",
@@ -16,7 +15,8 @@
       "org_name_full": "CybercentreCanada",
       "org_name_short": "cccs",
       "license": "mit",
-      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git"
+      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
+      "class_name": "Iparse"
     }
   },
   "directory": null
