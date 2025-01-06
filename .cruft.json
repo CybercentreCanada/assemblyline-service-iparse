@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-  "commit": "6d2fcb683f00eeda843cf2c40981e266679a97dc",
+  "commit": "99becf8ed2990a4063a5bb1f8ce878824a5a1a7b",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -8,6 +8,7 @@
       "__svc_name": "iparse",
       "__repository": "assemblyline-service-iparse",
       "__pkg_name": "iparse",
+      "class_name": "Iparse",
       "short_description": "This service extracts information from IPA package files.",
       "short_description_fr": "Ce service extrait des informations des fichiers de paquets IPA.",
       "stage": "CORE",
@@ -15,8 +16,7 @@
       "org_name_full": "CybercentreCanada",
       "org_name_short": "cccs",
       "license": "mit",
-      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git",
-      "class_name": "Iparse"
+      "_template": "https://github.com/CybercentreCanada/assemblyline-service-template.git"
     }
   },
   "directory": null
