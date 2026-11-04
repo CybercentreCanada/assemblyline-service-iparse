@@ -7,7 +7,6 @@ import zipfile
 from collections import defaultdict
 from subprocess import PIPE, Popen
 
-import biplist
 from assemblyline.common.str_utils import safe_str
 from assemblyline_service_utilities.common.balbuzard.patterns import PatternMatch
 from assemblyline_v4_service.common.base import ServiceBase
@@ -135,12 +134,8 @@ class IPArse(ServiceBase):
             try:
                 plist_dict = plistlib.loads(info_plist)
             except Exception:
-                # noinspection PyBroadException
-                try:
-                    plist_dict = biplist.readPlistFromString(info_plist)
-                except Exception:
-                    empty = True
-                    return empty, plist_dict
+                empty = True
+                return empty, plist_dict
 
         # Find IOCs in plist
         if patterns and plist_dict:
